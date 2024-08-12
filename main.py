@@ -11,7 +11,6 @@ from functools import wraps
 # pyinstaller -F -w main.py -i logo.png -n 旧文件自动送走 --add-data="logo.png;."
 
 
-
 def get_resource_path(relative_path):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
@@ -19,20 +18,20 @@ def get_resource_path(relative_path):
 
 
 def check_disk_space(folder_path_1, threshold_percentage_1):
-    global folder_path, threshold_percentage,settings_changed
-    
-    if settings_changed==True:
-        folder_path_1=folder_path
-        threshold_percentage_1=threshold_percentage
-        settings_changed=False
-        
+    global folder_path, threshold_percentage, settings_changed
+
+    if settings_changed == True:
+        folder_path_1 = folder_path
+        threshold_percentage_1 = threshold_percentage
+        settings_changed = False
+
     folder_path = folder_path_1
     threshold_percentage = threshold_percentage_1
-    
+
     total, used, free = shutil.disk_usage(folder_path)
-    #print("Total: %d GiB" % (total // (2**30)))
-    #print("Used: %d GiB" % (used // (2**30)))
-    #print("Free: %d GiB" % (free // (2**30)))
+    # print("Total: %d GiB" % (total // (2**30)))
+    # print("Used: %d GiB" % (used // (2**30)))
+    # print("Free: %d GiB" % (free // (2**30)))
     used_percentage = (used/total)*100
     # print(used_percentage)
     if used_percentage >= threshold_percentage:
@@ -77,7 +76,7 @@ def get_folder_datetime(folder_name, folder_path):
         datetime_str = '-'.join(datetime_str)
         # 解析日期时间
 
-        return time.mktime(time.strptime(datetime_str,"%Y-%m-%d"))
+        return time.mktime(time.strptime(datetime_str, "%Y-%m-%d"))
     except:
         return get_folder_creation_time(folder_name, folder_path)
 
@@ -113,18 +112,20 @@ def new_thread(func):
 
 
 @new_thread
-def make_file(folder_path, filename,file_Data):
+def make_file(folder_path, filename, file_Data):
     file_uri = folder_path+"\\"+filename+".txt"
     if os.path.exists(file_uri):
         pass
     else:
         with open(file_uri, "w", encoding="utf-8") as f:
             f.write(file_Data)
-            
+
+
 def on_quit():
     icon.stop()
     os._exit(0)
-    
+
+
 @new_thread
 def run_app():
     print("自动删除旧文件")
@@ -133,7 +134,7 @@ def run_app():
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     while True:
-        if settings_changed==True:
+        if settings_changed == True:
             print("监视文件夹路径:", folder_path)
             print("磁盘使用阈值:", threshold_percentage)
         check_disk_space(folder_path, threshold_percentage)
@@ -150,13 +151,14 @@ def full_disk():
             total, used, free = shutil.disk_usage(folder_path)
             if free < 1024*1024*1024:
                 break
-            make_file(folder_path, str(i),file_Data)
+            make_file(folder_path, str(i), file_Data)
     print("装满磁盘结束")
     pass
 
+
 def input_folder_path():
     def get_input():
-        global folder_path,settings_changed
+        global folder_path, settings_changed
         folder_path_new = entry.get()
         if not os.path.exists(folder_path_new):
             pass
@@ -177,9 +179,10 @@ def input_folder_path():
 
     return folder_path
 
+
 def input_threshold_percentage():
     def get_input():
-        global threshold_percentage,settings_changed
+        global threshold_percentage, settings_changed
         try:
             threshold_percentage = int(entry.get())
             if threshold_percentage < 0 or threshold_percentage > 100:
@@ -198,11 +201,13 @@ def input_threshold_percentage():
     root.mainloop()
 
     return threshold_percentage
+
+
 if __name__ == "__main__":
 
     threshold_percentage = 90  # 设置磁盘使用阈值，超过该阈值将触发删除操作
     folder_path = "d:\\ZhaoPian\\"  # 将路径替换为你的文件夹路径
-    settings_changed=False  # 设置是否更改过监视文件夹路径或磁盘使用阈值
+    settings_changed = False  # 设置是否更改过监视文件夹路径或磁盘使用阈值
     import pystray
     from PIL import Image
     icon = pystray.Icon(
