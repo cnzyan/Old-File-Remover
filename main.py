@@ -5,7 +5,10 @@ import time
 import sys
 import tkinter as tk
 from functools import wraps
-
+import pystray
+from PIL import Image
+import configparser
+import chardet
 # python -m venv .venv
 # .venv\Scripts\activate.ps1
 # pyinstaller -F -w main.py -i logo.png -n 旧文件自动送走 --add-data="logo.png;."
@@ -167,6 +170,13 @@ def input_folder_path():
                 folder_path_new += '\\'
             folder_path = folder_path_new
             settings_changed = True
+        if settings_changed == True:
+            try:
+                config.add_section('Config')  # 首先添加一个新的section
+            except:
+                pass
+            config.set('Config', 'folder_path', folder_path)  # 写入数据
+            config.write(open(configpath, 'r+',encoding='utf-8'))  # 保存数据
         root.destroy()
     root = tk.Tk()
     root.title("输入文件夹路径")
@@ -190,6 +200,15 @@ def input_threshold_percentage():
             settings_changed = True
         except:
             pass
+        if settings_changed == True:
+            try:
+                config.add_section('Config')  # 首先添加一个新的section
+            except:
+                pass
+            config.set('Config', 'threshold_percentage',
+                       str(threshold_percentage))  # 写入数据
+            config.write(open(configpath, 'r+',encoding='utf-8'))  # 保存数据
+
         root.destroy()
     root = tk.Tk()
     root.title("输入磁盘使用阈值")
@@ -203,13 +222,83 @@ def input_threshold_percentage():
     return threshold_percentage
 
 
-if __name__ == "__main__":
+def prepare_conf_file(configpath):  # 准备配置文件
+    if os.path.isfile(configpath) == True:
+        pass
+    else:
+        config.add_section("Config")
+        config.set("Config", "folder_path", "d:\\ZhaoPian\\")
+        config.set("Config", "threshold_percentage", r"90")
+        # write to file
+        config.write(open(configpath, "w",encoding='utf-8'))
+        pass
+    pass
 
-    threshold_percentage = 90  # 设置磁盘使用阈值，超过该阈值将触发删除操作
-    folder_path = "d:\\ZhaoPian\\"  # 将路径替换为你的文件夹路径
+
+def get_conf_from_file(config_path, config_section, conf_list):  # 读取配置文件
+    conf_default = {
+        "folder_path": "d:\\ZhaoPian\\",
+        "threshold_percentage": "90",
+    }
+    with open(config_path, "rb") as f:
+        result = chardet.detect(f.read())
+        encoding = result["encoding"]
+    config.read(config_path, encoding=encoding)
+    conf_item_settings = []
+    for conf_item in conf_list:
+        try:
+            conf_item_setting = config[config_section][conf_item]
+
+            # 获取 列表类型的配置项
+            if conf_item == "email_receivers":
+                item_nodes = conf_item_setting.split(",")
+                conf_item_setting = []
+                for item_node in item_nodes:
+                    conf_item_setting.append(item_node)
+        except Exception as e:
+            conf_item_setting = conf_default[conf_item]
+
+        print(str(conf_item) + ":" + str(conf_item_setting))
+        conf_item_settings.append(conf_item_setting)
+        pass
+    if len(conf_list) > 1:
+        return tuple(conf_item_settings)
+    else:
+        return conf_item_settings[0]
+
+
+if __name__ == "__main__":
+    config = configparser.ConfigParser()  # 类实例化
+
+    # 定义文件路径
+    configpath = r".\setup.ini"
+    prepare_conf_file(configpath)
+    (
+        folder_path,
+        threshold_percentage,
+    ) = get_conf_from_file(
+        configpath,
+        "Config",
+        [
+            "folder_path",
+            "threshold_percentage",
+        ],
+    )
+
+    # 设置磁盘使用阈值，超过该阈值将触发删除操作
+    try:
+        threshold_percentage = int(threshold_percentage)
+        if threshold_percentage < 0 or threshold_percentage > 100:
+            threshold_percentage = 90
+        settings_changed = True
+    except:
+        threshold_percentage = 90
+    # 设置监视文件夹路径
+    if folder_path[-1] != '\\':
+        folder_path += '\\'
+
     settings_changed = False  # 设置是否更改过监视文件夹路径或磁盘使用阈值
-    import pystray
-    from PIL import Image
+
     icon = pystray.Icon(
         name="旧文件自动送走",
         title="旧文件自动送走",
