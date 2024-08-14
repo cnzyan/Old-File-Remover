@@ -192,7 +192,7 @@ def input_folder_path():
             config.set('Config', 'folder_path', folder_path)  # 写入数据
             config.write(open(configpath, 'r+', encoding='utf-8'))  # 保存数据
         root.destroy()
-    root = tk.Toplevel(second)
+    root = tk.Toplevel(mainwin)
     root.title("输入文件夹路径")
     entry = tk.Entry(root, width=50)
     entry.insert(0, str(folder_path))
@@ -224,7 +224,7 @@ def input_threshold_percentage():
             config.write(open(configpath, 'r+', encoding='utf-8'))  # 保存数据
 
         root.destroy()
-    root = tk.Toplevel(second)
+    root = tk.Toplevel(mainwin)
     root.title("输入磁盘使用阈值")
     entry = tk.Entry(root, width=50)
     entry.insert(0, str(threshold_percentage))
@@ -291,17 +291,17 @@ def textpad_insert(text, f):
 
 def console_print(text):
     global textpad
-    second.after(500, textpad_insert, textpad, text)
+    mainwin.after(500, textpad_insert, textpad, text)
     pass
 
 
 def sw_console():
     global console_show
     if console_show == 0:
-        second.deiconify()
+        mainwin.deiconify()
         console_show = 1
     else:
-        second.withdraw()
+        mainwin.withdraw()
         console_show = 0
     pass
 
@@ -333,15 +333,15 @@ if __name__ == "__main__":
     icon = None
     app_runned = False
     sys_panel()
-    second = tk.Tk()
-    second.title("控制台")
-    second.geometry("600x600")
-    textpad = tk.Text(second, undo=False)
+    mainwin = tk.Tk()
+    mainwin.title("控制台")
+    mainwin.geometry("600x600")
+    textpad = tk.Text(mainwin, undo=False)
     textpad.pack(expand=True, fill='both')
     textpad.insert(tk.END, "开启控制台\n")
     console_show = 1
-    second.protocol("WM_DELETE_WINDOW", sw_console)
-    second.withdraw()
+    mainwin.protocol("WM_DELETE_WINDOW", sw_console)
+    mainwin.withdraw()
     console_show = 0
 
     config = configparser.ConfigParser()  # 类实例化
@@ -374,4 +374,4 @@ if __name__ == "__main__":
         folder_path += '\\'
 
     settings_changed = False  # 设置是否更改过监视文件夹路径或磁盘使用阈值
-    second.mainloop()
+    mainwin.mainloop()
