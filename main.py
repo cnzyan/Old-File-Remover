@@ -9,6 +9,7 @@ import pystray
 from PIL import Image
 import configparser
 import chardet
+import portalocker
 # python -m venv .venv
 # .venv\Scripts\activate.ps1
 # pyinstaller -F -w main.py -i logo.png -n 旧文件自动送走 --add-data="logo.png;."
@@ -275,8 +276,10 @@ def get_conf_from_file(config_path, config_section, conf_list):  # 读取配置�
                     conf_item_setting.append(item_node)
         except Exception as e:
             conf_item_setting = conf_default[conf_item]
-
-        console_print(str(conf_item) + ":" + str(conf_item_setting))
+        try:
+            console_print(str(conf_item) + ":" + str(conf_item_setting))
+        except Exception as e:
+            print("配置项错误:" + str(e))
         conf_item_settings.append(conf_item_setting)
         pass
     if len(conf_list) > 1:
@@ -295,6 +298,10 @@ def textpad_insert(text, f):
 
 def console_print(text):
     global textpad
+    if textpad is None:
+        return
+    if len(textpad.get("1.0", "end").split("\n")) > 1000:
+        textpad.delete("1.0", "end")
     mainwin.after(500, textpad_insert, textpad, text)
     pass
 
@@ -318,9 +325,9 @@ def sys_panel():
     except:
         pass
     if app_runned == True:
-        app_menu_show="√ 自动删除旧文件"
+        app_menu_show = "√ 自动删除旧文件"
     else:
-        app_menu_show="  自动删除旧文件"
+        app_menu_show = "  自动删除旧文件"
     icon = pystray.Icon(
         name="旧文件自动送走",
         title="旧文件自动送走",
@@ -341,9 +348,8 @@ def sys_panel():
     icon.run()
 
 
-if __name__ == "__main__":
-    icon = None
-    app_runned = False
+def main():
+    global folder_path, threshold_percentage, settings_changed, config, mainwin, console_show, textpad
     sys_panel()
     mainwin = tk.Tk()
     mainwin.title("控制台")
@@ -355,23 +361,6 @@ if __name__ == "__main__":
     mainwin.protocol("WM_DELETE_WINDOW", sw_console)
     mainwin.withdraw()
     console_show = 0
-
-    config = configparser.ConfigParser()  # 类实例化
-
-    # 定义文件路径
-    configpath = r".\setup.ini"
-    prepare_conf_file(configpath)
-    (
-        folder_path,
-        threshold_percentage,
-    ) = get_conf_from_file(
-        configpath,
-        "Config",
-        [
-            "folder_path",
-            "threshold_percentage",
-        ],
-    )
 
     # 设置磁盘使用阈值，超过该阈值将触发删除操作
     try:
@@ -387,3 +376,49 @@ if __name__ == "__main__":
 
     settings_changed = False  # 设置是否更改过监视文件夹路径或磁盘使用阈值
     mainwin.mainloop()
+
+
+if __name__ == "__main__":
+    locker_file = None
+    run_2nd = False
+    app_can_run = True
+    LOCK_FILE = './state_locker.tmp'
+    if app_can_run == True:
+
+        # 检查锁文件
+
+        try:
+            textpad = None
+            settings_changed = False
+            locker_file = open(LOCK_FILE, 'a')
+            portalocker.lock(locker_file, portalocker.LOCK_EX |
+                             portalocker.LOCK_NB)
+            run_2nd = False
+            config = configparser.ConfigParser()  # 类实例化
+
+            # 定义文件路径
+            configpath = r".\setup.ini"
+            prepare_conf_file(configpath)
+            (
+                folder_path,
+                threshold_percentage,
+            ) = get_conf_from_file(
+                configpath,
+                "Config",
+                [
+                    "folder_path",
+                    "threshold_percentage",
+                ],
+            )
+            icon = None
+            app_runned = False
+            console_show = 1
+            main()
+        except:
+            print("重复运行监控系统")
+            run_2nd = True
+        finally:
+            if run_2nd == False:
+                portalocker.unlock(locker_file)
+            locker_file.close()
+            os._exit(0)
