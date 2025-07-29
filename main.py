@@ -143,14 +143,18 @@ def on_quit():
 def run_app():
     global app_runned
     if app_runned == True:
+        app_runned = False
+        console_print("停止自动删除旧文件")
+        sys_panel()
         return
     app_runned = True
     console_print("自动删除旧文件")
     console_print("监视文件夹路径:"+folder_path)
     console_print("磁盘使用阈值:"+str(threshold_percentage))
+    sys_panel()
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-    while True:
+    while app_runned:
         if settings_changed == True:
             console_print("监视文件夹路径:" + folder_path)
             console_print("磁盘使用阈值:"+str(threshold_percentage))
@@ -309,12 +313,20 @@ def sw_console():
 @new_thread
 def sys_panel():
     global icon
+    try:
+        icon.stop()
+    except:
+        pass
+    if app_runned == True:
+        app_menu_show="√ 自动删除旧文件"
+    else:
+        app_menu_show="  自动删除旧文件"
     icon = pystray.Icon(
         name="旧文件自动送走",
         title="旧文件自动送走",
         icon=Image.open(get_resource_path("./logo.png")),
         menu=pystray.Menu(
-            pystray.MenuItem("自动删除旧文件", run_app),
+            pystray.MenuItem(app_menu_show, run_app),
             # pystray.MenuItem("装满磁盘", full_disk),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("设置监视文件夹", input_folder_path),
